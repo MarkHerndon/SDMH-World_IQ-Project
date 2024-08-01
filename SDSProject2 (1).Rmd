@@ -1,0 +1,215 @@
+---
+title: "Project 2"
+author: "Mark Herndon"
+output: html_document
+date: "2023-11-08"
+toc: true
+toc_float: true
+---
+
+# Section 1
+
+>The intelligence Quotient (IQ) test is a psychological test that measures the cognitive and intellectual abilities of an individual. Testing your working memory, reasoning, and logic the test has been used for decades to measure and understand a population's general intelligence. Though general intelligence has many differing definitions among experts to represent people's potential and capabilities, it has been used to gather insight on the external factors that could effect someoens learning capacity. I plan to investigate how the average IQ levels relate to a country’s industrialization, educational spending, and culture towards education. I thought it was an interesting data set to analyze and it made me question how IQ tests are conditioned and comprehended as well as its overall accessibility globally in which I intend to answer in my project.
+
+![*Image 1.Photo of Intelligence. Penn State https://www.psu.edu/news/research/story/more-school-more-challenging-assignments-add-higher-iq-scores/. Accessed 08 November. 2023.  *](Flynn Effect istock VLADGRIN.jpg)
+
+
+# Section 2
+
+> In this study I will be analyzing the avergae IQ levels of different countries with the worldwide average IQ levels dataset that I retrieved from *Kaggle.com*. When importing this dataset it was already formatted cleanly and was organized making processing easy. Being a csv file, I was able to import directly into R studio's environment. I also wanted to include a population variable so I merged a seperate dataset to include it, and got rid of any extraneous variables. Howerever, there were NA values and since I wouldnt be able to compare anything without that data I omitted those NA's from the dataset. Now I have a total of 91 observations.
+
+
+
+```{r}
+
+library(dplyr)
+library(rvest)
+library(dplyr)
+library(tidyverse)
+library(stringr)
+
+iq <- read.csv('IQ_level.csv')  
+
+# Merging datasets to include population counts for the countries
+
+export <- read.csv('export.csv')
+
+pop_ds <-  export %>% rename(country = name, population = value)
+
+merged_ds <- left_join(pop_ds, iq, by = "country")
+
+fin_iq <- merged_ds %>%
+  select(country, population, rank, IQ, education_expenditure, avg_temp, avg_income) %>% na.omit()
+
+# Creating a new variable for education expenditures per capita to inevestigate
+
+#Must mutate sting character "," within the population observations to convert the population variable to numeric
+
+fin_iq$population <- gsub(",", "", fin_iq$population)
+
+
+fin_iq$population <- as.numeric(fin_iq$population)
+
+fin_iq$EEpercap <- (fin_iq$education_expenditure / fin_iq$population) 
+
+# Creating new variable to represent GDP, and the percentage of GDP spent on educational expenditures. 
+
+
+fin_iq$GDP <- (fin_iq$avg_income + fin_iq$education_expenditure) 
+
+fin_iq$EEPerGDP <- (fin_iq$education_expenditure / fin_iq$GDP) * 100
+
+```
+
+# Section 3
+
+```{r}
+
+library(tibble)
+
+
+
+
+iq_tib <- tibble(Country = fin_iq$country, IQ_avg = fin_iq$IQ, Education_exp = fin_iq$education_expenditure, Avg_income = fin_iq$avg_income, Avg_Temp = fin_iq$avg_temp, Population = fin_iq$population, EE_perCap = fin_iq$EEpercap, GDP = fin_iq$GDP, EEperGDP = fin_iq$EEPerGDP) 
+
+iq_tib
+
+
+
+
+```
+
+
+
+# Section 4 
+
+```{r}
+
+library(ggplot2)
+
+iq_ggplot <- ggplot(fin_iq)
+
+
+iq_ggplot + geom_histogram(aes(x=IQ), color= "black", fill = "red", bins = 50) + labs(title= "Distribution of Aveage IQ Levels", x="Avg. IQ", y="Frequency")
+
+mean(iq$IQ)
+
+fivenum(iq$IQ)
+
+
+
+```
+
+> Graphing the distributiobn of Average IQ levels we can see that it compiles itself around the higher hinge of Average IQ levels. With a median score of 88, and a mean of 86.
+
+```{r}
+
+
+iq_ggplot + geom_histogram(aes(x=education_expenditure), color= "black", fill = "blue", bins = 50) + labs(title= "Distribution of Countries Education Expenditures", x="Expenditures", y="Frequency")
+
+mean(iq$education_expenditure)
+
+fivenum(iq$education_expenditure)
+
+
+```
+
+> For this graph we can see that education expenditures are mostly from the range of 0 to 2000, mostly being around 0 to 1000. From the groah and statistics we can see the mean is 903, and the median is 336.
+
+
+```{r}
+
+
+iq_ggplot + geom_histogram(aes(x=avg_income), color= "black", fill = "orange", bins = 50) + labs(title= "Distribution of countries Average Income", x="Avg Income", y="Frequency")
+
+mean(iq$avg_income)
+
+fivenum(iq$avg_income)
+
+
+```
+
+> This distibution of Average Income is similar to the expenditures graph, with most of the data being compiled around the lower hinge from 0 to 3000. This graphs mean is 17525, and the median is 7586.
+
+
+```{r}
+
+
+iq_ggplot + geom_histogram(aes(x=avg_temp), color= "black", fill = "pink", bins = 50) + labs(title= "Distribution of countries Average Temperature (Celcius)", x="Avg Temperature", y="Frequency")
+
+mean(iq$avg_temp)
+
+fivenum(iq$avg_temp)
+
+
+
+
+```
+
+> This distribution graph of average temperature for each country has a more even spread of its data, with a fivenum summary we can see its range is from .40 to 36.50, with a median of 25.60. this graoh also has a mean temperature of 23.78 degrees.
+
+
+
+
+# Section 5
+
+```{r}
+
+
+plotc_func <- function(variable, IQ = fin_iq$IQ, color='Blue', x = 'IQ', y = 'Variable name', main = 'Variable vs Avergae IQ'){
+ 
+
+plot(IQ, variable, main = "Var Vs. IQ", xlab = "IQ", ylab = "Variable", pch = 21)
+
+cor(IQ, variable)
+
+
+}
+
+
+  plotc_func(fin_iq$education_expenditure)
+  plotc_func(fin_iq$avg_income)
+  plotc_func(fin_iq$avg_temp)
+  plotc_func(fin_iq$EEpercap)
+  plotc_func(fin_iq$GDP)
+  plotc_func(fin_iq$EEPerGDP)
+  
+
+```
+
+> For these graphs I investigated there are varying correlations between IQ and the respective variables. For the first graph, it slopes upwards as educational expenditures increases with a correlation coefficient of 0.56. For the second graph comparing IQ and average income, it also exponentially slopes upwards, having a correlation coesfficent of 0.60. However, for the thrid graph as temperature decreaeses, IQ gets higher garnering a negative correlation between IQ and average temperature with a coefficient of -0.06. Finally graphing Educational expenditures per capita against IQ levels, though positive the correlation coefficient is weak with 0.20. This correlation can also be found when comparing the percentage of GDP spent on educational expenditures, with a correlation coefficent of 0.20.
+
+
+# Section 6
+
+> To ensure reproducibility I include comments throughout my code to explain what I was doing, I also shared my files with a classmate to ensure they could reproduce my files.
+
+# Section 7
+
+> Within my report, I chose to merge a daataset that included the population counts of the countries provided in my chosen dataset for this project, which I merged after section 2. Also in this code chunk I then created three new variables to include in my merged dataset, Educational expenditures per capita, a represntsion of GDP, and the Percentage of GDP spent on education. Another element I had to do within this chunk to create those variables was manipulating/parsing a string variable to convert that variable into a numeric type. I then created a user-written function when creating my multivariate graphs in section 5.
+
+
+# Section 8
+
+> From this report, we can see that a country's average IQ levels are directly affected by the socieconomic and environmental factors inflicted upon them. Through my analyis and visualization, it was shown that variables such as educational expenditures and average income were positively correlated with average IQ levels. With those variables combined to represent GDP, it can be concluded that those countries with higher prosperity average higher IQ levels. This information gives insight on how environmental factors accossiated with a thriving country can improve the well-being and intelligence of its people. Improving factors such as education through spending, economic well-being, and diet in a country can help people become more intelligble. However as an IQ test doesn't measure people's potential, it can help give us insight on the socioeconomic conditions of a country.  
+
+# Section 9
+
+Central Intelligence Agency, Central Intelligence Agency, www.cia.gov/the-world-factbook/field/population/country-comparison/. Accessed 10 Nov. 2023.
+
+Dahatonde, Abhijit. “💡 Worldwide Average IQ Levels 🧠.” Kaggle, 15 Oct. 2023, www.kaggle.com/datasets/abhijitdahatonde/worldwide-average-iq-levels/data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
